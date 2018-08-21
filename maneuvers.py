@@ -88,8 +88,9 @@ class Maneuvers:
     else:
       return np.append(-r,-v)
 
-  def propagate(self,time):
-    print("Propagating...from day ",self.current_t/60/60/24," to ",(self.current_t+time)/60/60/24)
+  def propagate(self,time,r0=0):
+    if r0==0:
+        print("Propagating...from day ",self.current_t/60/60/24," to ",(self.current_t+time)/60/60/24)
     #Integrate
     y0 = np.append(self.current_r,self.current_v)
     t = np.linspace(self.current_t,self.current_t+time,time/60)
@@ -102,6 +103,10 @@ class Maneuvers:
     self.current_r = self.rTrace[-1,:]
     self.current_v = self.vTrace[-1,:]
     self.current_t = self.current_t+time
+    if r0!=0 and (np.linalg.norm(self.current_r)-constants.Re)>r0*1000+1:
+        if time<=60:
+            time = 2*60
+        self.propagate(time,r0)
 
   def impulsive_maneuver(self,dv):
     self.current_v = self.current_v+dv
