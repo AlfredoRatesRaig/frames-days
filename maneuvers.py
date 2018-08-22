@@ -47,7 +47,12 @@ class Maneuvers:
       print("Day:"+str(t/60/60/24)+"\tHeight: "+str(z/1000)+" km")
 
     if(z > 100e3):
-      p = -1*self._IMPULSIVE_FORCE_
+      p = 0
+      if self._IMPULSIVE_FORCE_>0:
+        #Impulsive maneuver
+        p = p - self._IMPULSIVE_FORCE_*np.cross(self.current_r,self.current_v)/(np.linalg.norm(np.cross(self.current_r,self.current_v)))
+        
+        
       if self._PERTURBATION_ATMDRAG_:
         #Atmospheric Drag
         vrel = v - np.cross(constants.wE,r)
@@ -59,7 +64,7 @@ class Maneuvers:
         zz = r[2]
 
         rNorm = np.linalg.norm(r)
-        bigterm = np.array([1/rNorm*(5*zz**2/rNorm**2-1),
+        bigTerm = np.array([1/rNorm*(5*zz**2/rNorm**2-1),
                             1/rNorm*(5*zz**2/rNorm**2-1),
                             1/rNorm*(5*zz**2/rNorm**2-3)])
 
@@ -82,6 +87,7 @@ class Maneuvers:
       if t % (60*60*24) < 100:
         print("Orbital Energy:"+str(E));
       #Differential Equations
+      
       drdt = v
       dvdt = -constants.mu_E*(r/(np.linalg.norm(r)**3))+p
 
@@ -93,8 +99,9 @@ class Maneuvers:
     if r0==0:
         print("Propagating...from day ",self.current_t/60/60/24," to ",(self.current_t+time)/60/60/24)
     #Integrate
+    discretisation = 60*60
     y0 = np.append(self.current_r,self.current_v)
-    t = np.linspace(self.current_t,self.current_t+time,time/60)
+    t = np.linspace(self.current_t,self.current_t+time,time/discretisation)
     y = integrate.odeint(self.conwell,y0,t)
     # Update traces
     self.tTrace = np.append(self.tTrace,t)
@@ -109,13 +116,14 @@ class Maneuvers:
             time = 2*60
         self.propagate(time,r0)
     elif r0!=0 and self._IMPULSIVE_FORCE_>0 and (np.linalg.norm(self.current_r)-constants.Re)<r0*1000-1:
-        if time<=60:
-            time = 2*60
+        if time<=1:
+            time = 1
         self.propagate(time,r0)
 
   def impulsive_maneuver(self,dva,f=0):
     if f==0:
         self.current_v = self.current_v+dva
+        print("---------------------current v: ",self.current_v)
     else:
         self._IMPULSIVE_FORCE_ = dva
 
