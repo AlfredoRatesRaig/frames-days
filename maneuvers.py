@@ -10,7 +10,8 @@ class Maneuvers:
     self._PERTURBATION_ATMDRAG_ = 0
     self._PERTURBATION_J2_ = 0
     self._PERTURBATION_SOLARPRESS_ = 0
-
+    self._IMPULSIVE_FORCE_ = 0
+    
     self.current_r = 0 
     self.current_v = 0
     self.current_t = 0
@@ -46,7 +47,7 @@ class Maneuvers:
       print("Day:"+str(t/60/60/24)+"\tHeight: "+str(z/1000)+" km")
 
     if(z > 100e3):
-      p = 0
+      p = -1*self._IMPULSIVE_FORCE_
       if self._PERTURBATION_ATMDRAG_:
         #Atmospheric Drag
         vrel = v - np.cross(constants.wE,r)
@@ -76,7 +77,7 @@ class Maneuvers:
         #Radiation Pressure
         FR = -nu*PSR*CR*As/cubesat.mass
         p = p + FR
-      
+    
       E = np.linalg.norm(v)**2/2-constants.mu_E/np.linalg.norm(r)
       if t % (60*60*24) < 100:
         print("Orbital Energy:"+str(E));
@@ -103,11 +104,18 @@ class Maneuvers:
     self.current_r = self.rTrace[-1,:]
     self.current_v = self.vTrace[-1,:]
     self.current_t = self.current_t+time
-    if r0!=0 and (np.linalg.norm(self.current_r)-constants.Re)>r0*1000+1:
+    if r0!=0 and self._IMPULSIVE_FORCE_<=0 and (np.linalg.norm(self.current_r)-constants.Re)>r0*1000+1:
+        if time<=60:
+            time = 2*60
+        self.propagate(time,r0)
+    elif r0!=0 and self._IMPULSIVE_FORCE_>0 and (np.linalg.norm(self.current_r)-constants.Re)<r0*1000-1:
         if time<=60:
             time = 2*60
         self.propagate(time,r0)
 
-  def impulsive_maneuver(self,dv):
-    self.current_v = self.current_v+dv
+  def impulsive_maneuver(self,dva,f=0):
+    if f==0:
+        self.current_v = self.current_v+dva
+    else:
+        self._IMPULSIVE_FORCE_ = dva
 
