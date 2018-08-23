@@ -99,7 +99,7 @@ class Maneuvers:
     if r0==0:
         print("Propagating...from day ",self.current_t/60/60/24," to ",(self.current_t+time)/60/60/24)
     #Integrate
-    discretisation = 60*60
+    discretisation = 60*2
     y0 = np.append(self.current_r,self.current_v)
     t = np.linspace(self.current_t,self.current_t+time,time/discretisation)
     y = integrate.odeint(self.conwell,y0,t)
