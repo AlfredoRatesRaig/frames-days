@@ -23,3 +23,8 @@ class cubesat:
   A = dimensions[0]*dimensions[1]
   Cd = 2.2
   BC = m/(Cd*A)
+  
+  #Solid fuel
+  #https://www.publicacionesfac.com/index.php/cienciaypoderaereo/article/view/502/702
+  fuel_mass = 1#Kg
+  burning_rate =  1/(90*24*60*60)#Kg/s

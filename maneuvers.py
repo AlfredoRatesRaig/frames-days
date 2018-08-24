@@ -15,6 +15,8 @@ class Maneuvers:
     self.current_r = 0 
     self.current_v = 0
     self.current_t = 0
+    
+    self.satellite_mass = cubesat.m
 
     self.rTrace = np.array([])
     self.vTrace = np.array([])
@@ -44,13 +46,14 @@ class Maneuvers:
     v = stateVector[3:6]
     z = np.linalg.norm(r)-constants.Re
     if t % (60*60*24) < 100:
-      print("Day:"+str(t/60/60/24)+"\tHeight: "+str(z/1000)+" km")
+      print("Day:"+str(t/60/60/24)+"\tHeight: "+str(z/1000)+" km"+"\tMass: "+str(self.satellite_mass)+"Kg")
 
     if(z > 100e3):
       p = 0
-      if self._IMPULSIVE_FORCE_>0:
+      if self._IMPULSIVE_FORCE_>0 and self.satellite_mass >= cubesat.m-cubesat.fuel_mass:
         #Impulsive maneuver
-        p = p - self._IMPULSIVE_FORCE_*np.cross(self.current_r,self.current_v)/(np.linalg.norm(np.cross(self.current_r,self.current_v)))
+        p_vector = np.cross(self.current_r,self.current_v)/(np.linalg.norm(np.cross(self.current_r,self.current_v)))
+        p = p - (self._IMPULSIVE_FORCE_/self.satellite_mass)*p_vector
         
         
       if self._PERTURBATION_ATMDRAG_:
@@ -80,7 +83,7 @@ class Maneuvers:
         #Shadow function TODO
         nu = 1
         #Radiation Pressure
-        FR = -nu*PSR*CR*As/cubesat.mass
+        FR = -nu*PSR*CR*As/self.satellite_mass
         p = p + FR
     
       E = np.linalg.norm(v)**2/2-constants.mu_E/np.linalg.norm(r)
@@ -99,9 +102,12 @@ class Maneuvers:
     if r0==0:
         print("Propagating...from day ",self.current_t/60/60/24," to ",(self.current_t+time)/60/60/24)
     #Integrate
-    discretisation = 60*2
+    if r0!=0:
+        discretisation = 60
+    else:
+        discretisation = 60
     y0 = np.append(self.current_r,self.current_v)
-    t = np.linspace(self.current_t,self.current_t+time,time/discretisation)
+    t = np.linspace(self.current_t,self.current_t+time,time//discretisation)
     y = integrate.odeint(self.conwell,y0,t)
     # Update traces
     self.tTrace = np.append(self.tTrace,t)
@@ -111,6 +117,10 @@ class Maneuvers:
     self.current_r = self.rTrace[-1,:]
     self.current_v = self.vTrace[-1,:]
     self.current_t = self.current_t+time
+    # Update mass
+    if self._IMPULSIVE_FORCE_ != 0 and self.satellite_mass >= cubesat.m-cubesat.fuel_mass:
+        self.satellite_mass = self.satellite_mass-time*cubesat.burning_rate
+    
     if r0!=0 and self._IMPULSIVE_FORCE_<=0 and (np.linalg.norm(self.current_r)-constants.Re)>r0*1000+1:
         if time<=60:
             time = 2*60
